@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Buildalyzer;
 using Buildalyzer.Workspaces;
+using LeanCode.DomainModels.Generators;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -14,14 +15,27 @@ namespace Example.Tests.SourceGeneratedIds;
 [TestClass]
 public class Test
 {
-    private static readonly string exampleDirectoryPath = Path.Combine(
-        Path.Combine(Directory.GetParent(typeof(Test).Assembly.Location)!.FullName, "Example")
+    private static readonly string idExampleDirectoryPath = Path.Combine(
+        Path.Combine(Directory.GetParent(typeof(Test).Assembly.Location)!.FullName, "ExampleId")
+    );
+    private static readonly string jsonExampleDirectoryPath = Path.Combine(
+        Path.Combine(Directory.GetParent(typeof(Test).Assembly.Location)!.FullName, "ExampleJson")
     );
 
     [TestMethod]
-    public async Task TestUsingBuildalyser()
+    public async Task TestJsonUsingBuildalyser()
     {
-        // Get the path to the Example.csproj file
+        await VerifyNoCompilationErrorsWithBuildalyzer(jsonExampleDirectoryPath);
+    }
+
+    [TestMethod]
+    public async Task TestIdUsingBuildalyser()
+    {
+        await VerifyNoCompilationErrorsWithBuildalyzer(idExampleDirectoryPath);
+    }
+
+    private async Task VerifyNoCompilationErrorsWithBuildalyzer(string exampleDirectoryPath)
+    {
         var manager = new AnalyzerManager();
 
         var analyzer = manager.GetProject(Path.Combine(exampleDirectoryPath, "Example.csproj"));
@@ -43,7 +57,27 @@ public class Test
     }
 
     [TestMethod]
-    public async Task TestUsingRoslyn()
+    public async Task TestJsonUsingRoslyn()
+    {
+        await VerifyNoCompilationErrorsWithRoslyn(
+            jsonExampleDirectoryPath,
+            [typeof(JsonSerializerContext).Assembly.Location]
+        );
+    }
+
+    [TestMethod]
+    public async Task TestIdUsingRoslyn()
+    {
+        await VerifyNoCompilationErrorsWithRoslyn(
+            idExampleDirectoryPath,
+            [typeof(TypedIdGenerator).Assembly.Location]
+        );
+    }
+
+    private async Task VerifyNoCompilationErrorsWithRoslyn(
+        string exampleDirectoryPath,
+        List<string> analyzerFileReferences
+    )
     {
         var exampleSourceCode = File.ReadAllText(Path.Combine(exampleDirectoryPath, "Example.cs"));
 
@@ -63,11 +97,6 @@ public class Test
                 references.Add(MetadataReference.CreateFromFile(Assembly.Load(a).Location))
             );
 
-        var generatorReference = new AnalyzerFileReference(
-            typeof(JsonSerializerContext).Assembly.Location,
-            loader
-        );
-
         var projectInfo = ProjectInfo.Create(
             ProjectId.CreateNewId(),
             VersionStamp.Create(),
@@ -76,7 +105,10 @@ public class Test
             LanguageNames.CSharp,
             compilationOptions: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary),
             metadataReferences: references,
-            analyzerReferences: [generatorReference]
+            analyzerReferences: analyzerFileReferences.Select(f => new AnalyzerFileReference(
+                f,
+                loader
+            ))
         );
 
         var newProject = workspace.AddProject(projectInfo);

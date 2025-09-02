@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latestmajor</LangVersion>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="LeanCode.DomainModels" Version="9.0.2667-preview" />
+    <PackageReference
+      Include="LeanCode.DomainModels.Generators"
+      Version="9.0.2667-preview"
+      OutputItemType="Analyzer"
+      ReferenceOutputAssembly="false"
+      IncludeAssets="analyzers"
+    />
+  </ItemGroup>
+</Project>
